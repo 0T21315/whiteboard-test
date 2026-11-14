@@ -1,0 +1,467 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>線上白板功能測試</title>
+<style>
+:root{--bg:#f2f5fa;--ink:#1f2328;--sub:#5f6670;--line:#d3dbe8;--acc:#2f5fd0;--accbg:#e9effd;--card:#fff;--dot:#d2dae8;--warn:#e8f1fc;--warnl:#9dbce6}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:-apple-system,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;color:var(--ink);background:var(--bg);font-size:16px;line-height:1.55}
+button{font:inherit;cursor:pointer}
+.ic{width:100%;height:100%;display:block}
+.page{max-width:760px;margin:0 auto;padding:48px 24px}
+.page h1{font-size:24px;margin:0 0 16px}
+.page p{margin:0 0 14px}
+.btn{background:var(--acc);color:#fff;border:0;border-radius:8px;padding:10px 22px}
+.btn:disabled{background:#b9c2d6;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.links a{display:inline-block;margin:0 10px 10px 0;padding:8px 14px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink);text-decoration:none}
+/* task screen */
+#task{display:none;height:100%;flex-direction:column}
+#top{min-height:128px;background:#fff;border-bottom:1px solid var(--line);padding:12px 24px}
+#top .meta{font-size:13px;color:var(--sub);display:flex;gap:14px;flex-wrap:wrap}
+#top .lead{font-size:14px;color:var(--sub)}
+#top .q{font-size:20px;font-weight:600;margin-top:4px}
+#hint{display:none;background:var(--warn);border-bottom:1px solid var(--warnl);padding:10px 24px;align-items:center;gap:16px}
+#hint span{flex:1}
+#canvas{flex:1;position:relative;overflow:hidden;background-color:#f6f9fd;background-image:radial-gradient(var(--dot) 1.2px,transparent 1.2px);background-size:22px 22px}
+#tool{position:absolute;left:16px;top:16px;width:64px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;box-shadow:0 2px 6px rgba(0,0,0,.06);text-align:center}
+#plus{width:40px;height:40px;border:0;border-radius:8px;background:#fff;font-size:26px;line-height:1;color:var(--ink)}
+#plus:hover,#plus.on{background:var(--accbg);color:var(--acc)}
+#tool small{display:block;white-space:nowrap;font-size:11px;color:var(--sub);margin-top:2px}
+#panel{display:none;position:absolute;left:92px;top:16px;width:440px;height:min(600px,calc(100% - 32px));background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);flex-direction:column;overflow:hidden}
+#phead{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid var(--line);font-weight:600;min-height:50px}
+#phead .back{border:0;background:none;color:var(--acc);padding:2px 6px}
+#pbody{flex:1;overflow:auto;padding:10px}
+#pfoot{border-top:1px solid var(--line);padding:10px 14px;display:flex;align-items:center;gap:12px;min-height:84px}
+#pfoot .info{flex:1;font-size:14px;color:var(--sub)}
+#pfoot .info b{color:var(--ink)}
+.cat{display:block;width:100%;text-align:left;background:#fff;border:1px solid var(--line);border-radius:10px;padding:16px 16px;margin-bottom:10px;font-size:17px}
+.cat:hover{border-color:var(--acc);background:var(--accbg)}
+.fn{border:1px solid var(--line);border-radius:10px;margin-bottom:8px;background:#fff}
+.fn.sel{border-color:var(--acc);background:var(--accbg)}
+.fn .row{display:flex;align-items:center;gap:12px;padding:10px 12px;cursor:pointer}
+.fn .icb{width:32px;height:32px;flex:none;color:var(--ink)}
+.fn .nm{flex:1;font-size:16px}
+.fn .nm .d{display:block;font-size:13.5px;color:var(--sub);margin-top:2px}
+.fn .i{flex:none;width:26px;height:26px;border-radius:50%;border:1px solid var(--sub);background:#fff;color:var(--sub);font-size:14px;line-height:1;font-family:Georgia,serif}
+.fn .i.open{background:var(--ink);color:#fff;border-color:var(--ink)}
+.fn .xd{padding:0 12px 10px 56px;font-size:13.5px;color:var(--sub)}
+.wrong{color:#b3261e;font-size:14px}
+#debug{position:fixed;right:12px;top:130px;background:#111;color:#eee;font:12px/1.5 ui-monospace,monospace;padding:8px 10px;border-radius:8px;z-index:9;display:none}
+#debug button{font-size:11px;margin-top:4px}
+
+#fake{position:absolute;inset:0;pointer-events:none;user-select:none;overflow:hidden}
+#fake .a{position:absolute;color:#3b3f45}
+#fake .h{font-size:30px;font-weight:700}
+#fake .g{font-size:14px;color:#8a8f98}
+#fake .bar{height:10px;border-radius:5px;background:#d6d8dc;margin-bottom:10px}
+#fake .bx{width:130px;height:64px;border:2px solid #4b5563;border-radius:10px;background:#fff;display:flex;align-items:center;justify-content:center;font-size:17px}
+#fake .cur{position:absolute}
+#fake .cur span{position:absolute;left:16px;top:16px;color:#fff;font-size:12px;padding:2px 8px;border-radius:10px;white-space:nowrap}
+#fake .t{font-size:18px}
+#fake .n{font-size:15px;color:#9aa0a8;font-style:italic}
+.ph{width:40px;height:40px;border:1.5px dashed #aab4c6;border-radius:8px;margin:0 auto 6px}
+#btool{position:absolute;left:50%;bottom:16px;transform:translateX(-50%);background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px;display:flex;gap:4px;pointer-events:none;user-select:none;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+#btool div{width:40px;height:40px;display:flex;align-items:center;justify-content:center;color:#3b3f45}
+#btool svg{width:22px;height:22px}
+#zoom{position:absolute;right:16px;bottom:16px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:6px 10px;display:flex;align-items:center;gap:14px;pointer-events:none;user-select:none;color:#3b3f45;box-shadow:0 2px 6px rgba(0,0,0,.06);font-size:15px}
+#zoom b{font-weight:400;font-size:20px;line-height:1}
+#pointer{display:none;position:absolute;align-items:center;gap:8px;z-index:3;pointer-events:none}
+#pointer svg{width:44px;height:28px;animation:nudge 1.1s ease-in-out infinite}
+#pointer .callout{background:#1f2328;color:#fff;border-radius:8px;padding:8px 14px;font-size:15px;white-space:nowrap}
+@keyframes nudge{0%,100%{transform:translateX(0)}50%{transform:translateX(-7px)}}
+.fq{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:14px}
+.fq h3{margin:0 0 6px;font-size:17px}
+.fq .zh{margin:0 0 4px}.fq .en{margin:0 0 14px;color:var(--sub);font-size:14px}
+.sl{position:relative;margin-top:26px;height:34px;touch-action:none;cursor:pointer;margin:0 8px}
+.sl .ln{position:absolute;left:0;right:0;top:16px;height:2px;background:#9aa0a8}
+.sl .tk{position:absolute;top:8px;width:2px;height:18px;background:#9aa0a8}
+.sl .th{position:absolute;top:5px;width:6px;height:24px;margin-left:-3px;background:var(--acc);border-radius:3px;display:none}
+.sl.on .th{display:block}
+.sl .st{position:absolute;top:12px;width:1px;height:8px;background:#c4c8ce}
+.sl .bb{position:absolute;top:-24px;transform:translateX(-50%);background:#1f2328;color:#fff;font-size:13px;line-height:1;padding:4px 8px;border-radius:6px;display:none;white-space:nowrap}
+.sl.on .bb{display:block}
+.ends{display:flex;justify-content:space-between;font-size:14px;color:var(--sub);margin:2px 8px 0}
+.likert{display:flex;justify-content:space-between;gap:6px;margin-top:6px}
+.likert label{flex:1;text-align:center;font-size:14px;color:var(--sub);cursor:pointer}
+.likert input{display:block;margin:0 auto 4px;width:18px;height:18px}
+.opt{display:flex;align-items:flex-start;gap:8px;padding:4px 0;cursor:pointer}.opt input{margin-top:5px}.opt small{color:var(--sub);font-size:13px}
+.txt{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px}
+.steps{margin:0;padding-left:22px}.steps li{margin-bottom:6px}
+.likert .le{display:block;font-style:normal;font-size:13px;line-height:1.3;margin-top:4px;color:var(--sub)}
+.likert .ends2{display:flex;justify-content:space-between;font-size:13px;color:var(--sub);margin-top:2px}
+.note{font-size:14px;color:var(--sub)}
+#obj{position:absolute;left:11%;top:26%;width:34%;pointer-events:none;user-select:none;display:none}
+#donebar{display:none;position:absolute;left:50%;bottom:96px;transform:translateX(-50%);z-index:5;background:#1f2328;color:#fff;border-radius:12px;padding:14px 18px;align-items:center;gap:18px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:92%}
+#donebar .btn{background:#fff;color:#1f2328;white-space:nowrap}
+textarea{width:100%;height:260px;font:12px ui-monospace,monospace}
+</style>
+</head>
+<body>
+<div id="entry" class="page" style="display:none"></div>
+<div id="intro" class="page" style="display:none"></div>
+<div id="between" class="page" style="display:none"></div>
+<div id="form" class="page" style="display:none"></div>
+<div id="end" class="page" style="display:none"></div>
+<div id="task">
+  <div id="top"><div class="meta"><span id="pg"></span></div><div class="lead" id="lead"></div><div class="q" id="q"></div></div>
+  <div id="hint"><span id="hintx"></span><button class="btn ghost" id="hintok">知道了</button></div>
+  <div id="canvas">
+<div id="fake" aria-hidden="true"></div>
+    <div id="tool"><div class="ph"></div><div class="ph"></div><div class="ph"></div><div class="ph"></div><div class="ph"></div><button id="plus" aria-label="更多功能">＋</button><small>更多功能</small></div>
+    <div id="btool" aria-hidden="true"><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3l13 7.5-5.8 1.6L10 18z"/></svg></div><div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 11V6a2 2 0 0 0-4 0"/><path d="M14 10V4a2 2 0 0 0-4 0v2"/><path d="M10 10.5V6a2 2 0 0 0-4 0v8"/><path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.9-6-2.3l-3.6-3.6a2 2 0 0 1 2.8-2.8L7 15"/></svg></div></div>
+    <div id="zoom" aria-hidden="true"><b>−</b><span>100%</span><b>＋</b></div>
+    <div id="pointer"><svg viewBox="0 0 44 28" fill="none" stroke="#2f5fd0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M42 14H4M14 4L4 14l10 10"/></svg><div class="callout">看完題目後，點擊「更多功能」開始任務</div></div>
+    <div id="obj"></div>
+    <div id="donebar"><span>這一題的計時已停止。請點擊「確認」，填寫本題的工作負荷量表。</span><button class="btn" id="doneok">確認</button></div>
+    <div id="panel"><div id="phead"></div><div id="pbody"></div><div id="pfoot"></div></div>
+  </div>
+</div>
+<div id="debug"></div>
+<script>
+const ICONS={"f01": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <defs>\n    <style>\n      .f01-1 {\n        fill: none;\n      }\n\n      .f01-1, .f01-2 {\n        stroke: currentColor;\n        stroke-miterlimit: 10;\n        stroke-width: 21px;\n      }\n    </style>\n  </defs>\n  <path class=\"f01-1\" d=\"M311.54,113.27l49.42,49.42,38.45,38.45,21.95-21.95c6.03-6.03,6.03-15.82,0-21.85l-66.02-66.02c-6.03-6.03-15.82-6.03-21.85,0l-21.95,21.95Z\"/>\n  <path class=\"f01-2\" d=\"M94.68,392.84l-8.38,26.89c-1.02,3.26,2.02,6.34,5.3,5.37l27.24-8.1-24.16-24.16Z\"/>\n  <path class=\"f01-1\" d=\"M360.97,162.69l-49.42-49.42-184.59,184.59c-2.55,2.55-4.44,5.68-5.51,9.12l-26.77,85.87,24.16,24.16,86.71-25.78c3.55-1.06,6.78-2.98,9.4-5.6l184.48-184.48-38.45-38.45Z\"/>\n</svg>", "f02": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <defs>\n    <style>\n      .f02-1 {\n        stroke-linecap: round;\n        stroke-linejoin: round;\n      }\n\n      .f02-1, .f02-2 {\n        fill: none;\n        stroke-width: 21px;\n      }\n\n      .f02-1, .f02-2, .f02-3 {\n        stroke: currentColor;\n      }\n\n      .f02-2, .f02-3 {\n        stroke-miterlimit: 10;\n      }\n\n      .f02-3 {\n        stroke-width: 10px;\n      }\n    </style>\n  </defs>\n  <circle class=\"f02-3\" cx=\"125.17\" cy=\"409.76\" r=\"15.52\"/>\n  <path class=\"f02-2\" d=\"M125.17,409.76h61.35c29.34,0,53.13-23.79,53.13-53.13v-178.08c0-29.34,23.79-53.13,53.13-53.13h83.88\"/>\n  <polyline class=\"f02-1\" points=\"330.77 86.79 376.66 125.42 330.77 164.06\"/>\n</svg>", "f03": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <defs>\n    <style>\n      .f03-1 {\n        fill: none;\n        stroke: currentColor;\n        stroke-linecap: round;\n        stroke-miterlimit: 10;\n        stroke-width: 21px;\n      }\n    </style>\n  </defs>\n  <circle class=\"f03-1\" cx=\"317.71\" cy=\"311.11\" r=\"114.16\"/>\n  <path class=\"f03-1\" d=\"M305.62,197.58v-78.12c0-10.62-8.61-19.23-19.23-19.23H113.98c-10.62,0-19.23,8.61-19.23,19.23v172.41c0,10.62,8.61,19.23,19.23,19.23h89.57c0-58.97,44.71-107.49,102.08-113.53Z\"/>\n</svg>", "f04": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <defs>\n    <style>\n      .f04-1 {\n        fill: none;\n        stroke: currentColor;\n        stroke-linecap: round;\n        stroke-miterlimit: 10;\n        stroke-width: 20px;\n      }\n    </style>\n  </defs>\n  <polyline class=\"f04-1\" points=\"120.99 155.85 120.99 118.61 391.01 118.61 391.01 155.85\"/>\n  <line class=\"f04-1\" x1=\"219.69\" y1=\"412.32\" x2=\"292.31\" y2=\"412.32\"/>\n  <line class=\"f04-1\" x1=\"256\" y1=\"118.61\" x2=\"256\" y2=\"412.32\"/>\n</svg>", "f05": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <defs>\n    <style>\n      .f05-1 {\n        fill: none;\n        stroke: currentColor;\n        stroke-linecap: round;\n        stroke-linejoin: round;\n        stroke-width: 21px;\n      }\n    </style>\n  </defs>\n  <path class=\"f05-1\" d=\"M399.41,290v-8.02c0,25.22-35.46,21.03-59.35,20.92-16.51-.08-31.23-1.8-43.72-4.1-6.3-1.16-11.87,4.23-10.89,10.56,2.08,13.39,3.53,28.91,3.45,46.14-.1,22.13,2.3,51.64-22.31,56.83h10.49c74.22,0,122.33-48.64,122.33-122.33Z\"/>\n  <path class=\"f05-1\" d=\"M288.91,355.49c.08-17.23-1.37-32.75-3.45-46.14-.98-6.33,4.59-11.72,10.89-10.56,12.48,2.3,27.21,4.02,43.72,4.1,23.89.11,59.35,4.3,59.35-20.92v-151.6c0-6.49-5.26-11.76-11.76-11.76H117.46c-6.49,0-11.76,5.26-11.76,11.76v270.19c0,6.49,5.26,11.76,11.76,11.76h149.14c24.61-5.19,22.21-34.7,22.31-56.83Z\"/>\n</svg>", "f06": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <defs>\n    <style>\n      .f06-1 {\n        fill: currentColor;\n      }\n    </style>\n  </defs>\n  <path d=\"M404.9,107.1v297.8h-23.07l-97.47-150.18c-6.25-9.63-16.88-15.38-28.45-15.38-9.81,0-19.12,4.21-25.54,11.56l-60.09,68.72-6.95-7.01c-6.41-6.46-14.97-10.02-24.11-10.02-9.77,0-19.05,4.18-25.48,11.47l-6.65,7.55V107.1h297.8M409.82,86.1H102.18c-8.88,0-16.08,7.2-16.08,16.08v275.05l43.41-49.28c2.55-2.89,6.13-4.35,9.72-4.35,3.34,0,6.68,1.26,9.2,3.81l13.3,13.41c2.45,2.47,5.7,3.7,8.94,3.7,3.5,0,7-1.43,9.47-4.26l66.04-75.52c2.58-2.95,6.16-4.39,9.73-4.39,4.18,0,8.34,1.97,10.83,5.81l103.68,159.75h39.4c8.88,0,16.08-7.2,16.08-16.08V102.18c0-8.88-7.2-16.08-16.08-16.08h0Z\"/>\n  <circle class=\"f06-1\" cx=\"329.56\" cy=\"174.65\" r=\"36.14\"/>\n  <path class=\"f06-1\" d=\"M266.75,266.16c-4.61-7.11-14.97-7.83-20.57-1.43l-66.04,75.52c-4.77,5.45-13.31,5.71-18.41.56l-13.3-13.41c-5.24-5.28-14.01-5.03-18.92.55l-43.41,49.28v32.59c0,8.88,7.2,16.08,16.08,16.08h268.25l-103.68-159.75Z\"/>\n</svg>", "f07": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <defs>\n    <style>\n      .f07-1 {\n        fill: #fff;\n      }\n\n      .f07-2 {\n        stroke: currentColor;\n        stroke-miterlimit: 10;\n        stroke-width: 12px;\n      }\n    </style>\n  </defs>\n  <g>\n    <circle cx=\"202.81\" cy=\"192.93\" r=\"9.71\"/>\n    <circle cx=\"309.19\" cy=\"192.93\" r=\"9.71\"/>\n  </g>\n  <path d=\"M256.49,104.93c18.01,0,35.61,3.13,52.33,9.3,16.15,5.97,31.08,14.61,44.38,25.7,24.37,20.33,41.76,47.88,49.61,78.32l-143.72,188.8c-.86.01-1.73.02-2.59.02-40.35,0-78.29-15.71-106.83-44.25-28.53-28.53-44.25-66.47-44.25-106.83s15.71-78.29,44.25-106.83c28.53-28.53,66.47-44.25,106.83-44.25M256.49,83.93c-95.03,0-172.07,77.04-172.07,172.07s77.04,172.07,172.07,172.07c4.5,0,8.96-.17,13.37-.51l155.57-204.36c-15.32-79.34-85.12-139.27-168.94-139.27h0Z\"/>\n  <path class=\"f07-2\" d=\"M273.89,342.65c-5.75,1.31-11.74,2.03-17.89,2.03-41.97,0-76.37-32.3-79.75-73.39-.16-1.94-1.77-3.44-3.72-3.44h0c-2.18,0-3.92,1.86-3.74,4.04,3.69,44.94,41.33,80.27,87.22,80.27,5.3,0,10.48-.5,15.52-1.4.72-2.72,1.52-5.43,2.37-8.11Z\"/>\n  <g>\n    <path class=\"f07-1\" d=\"M276.45,403.74c-.15-2.82-.22-5.65-.22-8.47,0-41.22,15.45-80.54,43.51-110.7,22.72-24.42,51.98-41.06,84.03-48.09l-127.32,167.26Z\"/>\n    <path d=\"M374.73,257.3l-85.93,112.89c4.86-29.22,18.16-56.45,38.64-78.47,13.58-14.59,29.64-26.21,47.3-34.42M427.58,222.54l-2.22.17c-43.35,3.33-83.59,22.76-113.3,54.7-29.87,32.11-46.33,73.97-46.33,117.85,0,11.05,1.06,22.15,3.15,32.99l.42,2.19,158.27-207.91h0Z\"/>\n  </g>\n</svg>", "f08": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <defs>\n    <style>\n      .f08-1 {\n        fill: currentColor;\n      }\n\n      .f08-2 {\n        fill: none;\n        stroke: currentColor;\n        stroke-miterlimit: 10;\n        stroke-width: 21px;\n      }\n    </style>\n  </defs>\n  <rect class=\"f08-1\" x=\"166.07\" y=\"196.83\" width=\"179.85\" height=\"116.94\" rx=\"58.47\" ry=\"58.47\"/>\n  <rect class=\"f08-2\" x=\"102.39\" y=\"100.36\" width=\"77.4\" height=\"46.04\" rx=\"23.02\" ry=\"23.02\"/>\n  <rect class=\"f08-2\" x=\"332.21\" y=\"100.36\" width=\"77.4\" height=\"46.04\" rx=\"23.02\" ry=\"23.02\"/>\n  <rect class=\"f08-2\" x=\"102.39\" y=\"365.61\" width=\"77.4\" height=\"46.04\" rx=\"23.02\" ry=\"23.02\"/>\n  <rect class=\"f08-2\" x=\"332.21\" y=\"365.61\" width=\"77.4\" height=\"46.04\" rx=\"23.02\" ry=\"23.02\"/>\n  <line class=\"f08-2\" x1=\"204.48\" y1=\"200.37\" x2=\"156.77\" y2=\"146.39\"/>\n  <line class=\"f08-2\" x1=\"305.89\" y1=\"199.8\" x2=\"355.23\" y2=\"146.39\"/>\n  <line class=\"f08-2\" x1=\"206.51\" y1=\"310.94\" x2=\"156.77\" y2=\"365.61\"/>\n  <line class=\"f08-2\" x1=\"311.18\" y1=\"308.76\" x2=\"355.23\" y2=\"365.61\"/>\n</svg>", "f09": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <defs>\n    <style>\n      .f09-1 {\n        fill: currentColor;\n      }\n\n      .f09-2, .f09-3 {\n        fill: none;\n        stroke: currentColor;\n        stroke-miterlimit: 10;\n        stroke-width: 21px;\n      }\n\n      .f09-3 {\n        stroke-linecap: round;\n      }\n    </style>\n  </defs>\n  <rect class=\"f09-1\" x=\"50.53\" y=\"203.91\" width=\"156.98\" height=\"116.94\" rx=\"44.28\" ry=\"44.28\"/>\n  <path d=\"M380.72,133.9c8.26,0,14.98,6.72,14.98,14.98s-6.72,14.98-14.98,14.98h-85.02c-8.26,0-14.98-6.72-14.98-14.98s6.72-14.98,14.98-14.98h85.02M380.72,112.9h-85.02c-19.87,0-35.98,16.11-35.98,35.98h0c0,19.87,16.11,35.98,35.98,35.98h85.02c19.87,0,35.98-16.11,35.98-35.98h0c0-19.87-16.11-35.98-35.98-35.98h0Z\"/>\n  <path d=\"M380.72,362.25c8.26,0,14.98,6.72,14.98,14.98s-6.72,14.98-14.98,14.98h-85.02c-8.26,0-14.98-6.72-14.98-14.98s6.72-14.98,14.98-14.98h85.02M380.72,341.25h-85.02c-19.87,0-35.98,16.11-35.98,35.98h0c0,19.87,16.11,35.98,35.98,35.98h85.02c19.87,0,35.98-16.11,35.98-35.98h0c0-19.87-16.11-35.98-35.98-35.98h0Z\"/>\n  <path class=\"f09-2\" d=\"M259.72,148.88h-75.66c-30.39,0-55.03,24.64-55.03,55.03h0\"/>\n  <path class=\"f09-2\" d=\"M129.03,322.21h0c0,30.39,24.64,55.03,55.03,55.03h75.66\"/>\n  <polyline class=\"f09-3\" points=\"230.74 129.46 256 148.88 230.74 168.3\"/>\n  <polyline class=\"f09-3\" points=\"230.74 357.82 256 377.24 230.74 396.65\"/>\n</svg>", "f10": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <defs>\n    <style>\n      .f10-1 {\n        fill: currentColor;\n      }\n\n      .f10-2 {\n        fill: none;\n        stroke: currentColor;\n        stroke-miterlimit: 10;\n        stroke-width: 21px;\n      }\n    </style>\n  </defs>\n  <rect class=\"f10-1\" x=\"186.22\" y=\"100.78\" width=\"139.57\" height=\"97.48\" rx=\"37.94\" ry=\"37.94\"/>\n  <path d=\"M191.14,334.73c9.34,0,16.94,7.6,16.94,16.94v21.61c0,9.34-7.6,16.94-16.94,16.94h-63.69c-9.34,0-16.94-7.6-16.94-16.94v-21.61c0-9.34,7.6-16.94,16.94-16.94h63.69M191.14,313.73h-63.69c-20.95,0-37.94,16.99-37.94,37.94v21.61c0,20.95,16.99,37.94,37.94,37.94h63.69c20.95,0,37.94-16.99,37.94-37.94v-21.61c0-20.95-16.99-37.94-37.94-37.94h0Z\"/>\n  <path d=\"M384.55,334.73c9.34,0,16.94,7.6,16.94,16.94v21.61c0,9.34-7.6,16.94-16.94,16.94h-63.69c-9.34,0-16.94-7.6-16.94-16.94v-21.61c0-9.34,7.6-16.94,16.94-16.94h63.69M384.55,313.73h-63.69c-20.95,0-37.94,16.99-37.94,37.94v21.61c0,20.95,16.99,37.94,37.94,37.94h63.69c20.95,0,37.94-16.99,37.94-37.94v-21.61c0-20.95-16.99-37.94-37.94-37.94h0Z\"/>\n  <path class=\"f10-2\" d=\"M159.3,313.73v-18.25c0-10.67,8.65-19.32,19.32-19.32h154.76c10.67,0,19.32,8.65,19.32,19.32v18.25\"/>\n  <line class=\"f10-2\" x1=\"256\" y1=\"199.04\" x2=\"256\" y2=\"276.16\"/>\n</svg>", "f11": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <defs>\n    <style>\n      .f11-1, .f11-2 {\n        fill: currentColor;\n      }\n\n      .f11-2 {\n        stroke: currentColor;\n        stroke-miterlimit: 10;\n        stroke-width: 21px;\n      }\n    </style>\n  </defs>\n  <path d=\"M404.9,178.42v222.14c0,2.39-1.95,4.34-4.34,4.34H111.44c-2.39,0-4.34-1.95-4.34-4.34v-222.14h297.8M419.43,157.42H92.57c-3.58,0-6.47,2.9-6.47,6.47v236.67c0,13.99,11.35,25.34,25.34,25.34h289.12c13.99,0,25.34-11.35,25.34-25.34v-236.67c0-3.58-2.9-6.47-6.47-6.47h0Z\"/>\n  <path class=\"f11-1\" d=\"M110.29,79.1h289.12c13.99,0,25.34,11.35,25.34,25.34v22.02c0,3.57-2.9,6.47-6.47,6.47H91.43c-3.57,0-6.47-2.9-6.47-6.47v-22.02c0-13.99,11.35-25.34,25.34-25.34Z\"/>\n  <line class=\"f11-2\" x1=\"93.31\" y1=\"244.81\" x2=\"417.82\" y2=\"244.81\"/>\n  <line class=\"f11-2\" x1=\"93.31\" y1=\"338.51\" x2=\"417.82\" y2=\"338.51\"/>\n  <line class=\"f11-2\" x1=\"159.69\" y1=\"157.42\" x2=\"159.69\" y2=\"425.9\"/>\n</svg>", "f12": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <defs>\n    <style>\n      .f12-1 {\n        fill: none;\n        stroke: currentColor;\n        stroke-miterlimit: 10;\n        stroke-width: 21px;\n      }\n    </style>\n  </defs>\n  <path d=\"M422.3,107.1v297.8H91.24V107.1h331.05M423.69,86.1H89.85c-10.83,0-19.61,8.78-19.61,19.61v300.59c0,10.83,8.78,19.61,19.61,19.61h333.84c10.83,0,19.61-8.78,19.61-19.61V105.71c0-10.83-8.78-19.61-19.61-19.61h0Z\"/>\n  <line class=\"f12-1\" x1=\"76.81\" y1=\"197.2\" x2=\"434.2\" y2=\"197.2\"/>\n  <line class=\"f12-1\" x1=\"75.91\" y1=\"312.29\" x2=\"433.31\" y2=\"312.29\"/>\n  <line class=\"f12-1\" x1=\"256.77\" y1=\"86.1\" x2=\"256.77\" y2=\"425.9\"/>\n</svg>", "f13": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <defs>\n    <style>\n      .f13-1 {\n        fill: currentColor;\n      }\n    </style>\n  </defs>\n  <path d=\"M235,160.69v244.21H97.42v-244.21h137.58M248.75,139.69H83.67c-4,0-7.25,3.25-7.25,7.25v271.71c0,4,3.25,7.25,7.25,7.25h165.08c4,0,7.25-3.25,7.25-7.25V146.94c0-4-3.25-7.25-7.25-7.25h0Z\"/>\n  <path d=\"M439.7,160.69v116.16h-137.58v-116.16h137.58M453.45,139.69h-165.08c-4,0-7.25,3.25-7.25,7.25v143.66c0,4,3.25,7.25,7.25,7.25h165.08c4,0,7.25-3.25,7.25-7.25v-143.66c0-4-3.25-7.25-7.25-7.25h0Z\"/>\n  <rect class=\"f13-1\" x=\"76.42\" y=\"80.76\" width=\"179.58\" height=\"38.5\" rx=\"7.25\" ry=\"7.25\"/>\n  <rect class=\"f13-1\" x=\"281.12\" y=\"80.76\" width=\"179.58\" height=\"38.5\" rx=\"7.25\" ry=\"7.25\"/>\n</svg>", "f14": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <path d=\"M222.37,128.81v32.6H71.53v-32.6h150.84M231.81,107.81H62.09c-6.38,0-11.56,5.18-11.56,11.56v51.49c0,6.38,5.18,11.56,11.56,11.56h169.72c6.38,0,11.56-5.18,11.56-11.56v-51.49c0-6.38-5.18-11.56-11.56-11.56h0Z\"/>\n  <path d=\"M295.11,350.59v32.6h-150.84v-32.6h150.84M304.55,329.59h-169.72c-6.38,0-11.56,5.18-11.56,11.56v51.49c0,6.38,5.18,11.56,11.56,11.56h169.72c6.38,0,11.56-5.18,11.56-11.56v-51.49c0-6.38-5.18-11.56-11.56-11.56h0Z\"/>\n  <path d=\"M429.55,239.7v32.6h-212.66v-32.6h212.66M438.99,218.7h-231.54c-6.38,0-11.56,5.18-11.56,11.56v51.49c0,6.38,5.18,11.56,11.56,11.56h231.54c6.38,0,11.56-5.18,11.56-11.56v-51.49c0-6.38-5.18-11.56-11.56-11.56h0Z\"/>\n</svg>", "f15": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <defs>\n    <style>\n      .f15-1 {\n        fill: currentColor;\n      }\n    </style>\n  </defs>\n  <circle cx=\"122.47\" cy=\"236.69\" r=\"9.51\"/>\n  <circle cx=\"122.47\" cy=\"302.52\" r=\"9.51\"/>\n  <path class=\"f15-1\" d=\"M420.98,113.16H91.02c-9.26,0-16.76,7.5-16.76,16.76v17.67c0,3.12,2.53,5.65,5.65,5.65h352.18c3.12,0,5.65-2.53,5.65-5.65v-17.67c0-9.26-7.5-16.76-16.76-16.76Z\"/>\n  <path d=\"M416.74,195.02v179.01H95.26v-179.01h321.48M432.09,174.02H79.91c-3.12,0-5.65,2.53-5.65,5.65v198.6c0,9.26,7.5,16.76,16.76,16.76h329.95c9.26,0,16.76-7.5,16.76-16.76v-198.6c0-3.12-2.53-5.65-5.65-5.65h0Z\"/>\n  <path class=\"f15-1\" d=\"M372.59,244.57h-209.87c-4.85,0-8.78-3.53-8.78-7.88h0c0-4.35,3.93-7.88,8.78-7.88h209.87c4.85,0,8.78,3.53,8.78,7.88h0c0,4.35-3.93,7.88-8.78,7.88Z\"/>\n  <path class=\"f15-1\" d=\"M372.59,310.4h-209.87c-4.85,0-8.78-3.53-8.78-7.88h0c0-4.35,3.93-7.88,8.78-7.88h209.87c4.85,0,8.78,3.53,8.78,7.88h0c0,4.35-3.93,7.88-8.78,7.88Z\"/>\n</svg>", "f16": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <defs>\n    <style>\n      .f16-1 {\n        fill: currentColor;\n      }\n\n      .f16-2 {\n        stroke-linejoin: round;\n      }\n\n      .f16-2, .f16-3 {\n        fill: none;\n        stroke: currentColor;\n        stroke-width: 21px;\n      }\n\n      .f16-3 {\n        stroke-miterlimit: 10;\n      }\n    </style>\n  </defs>\n  <path class=\"f16-3\" d=\"M336.29,151.78c-9.49,0-17.19-7.7-17.19-17.19v-56.03c-3.28-1.49-6.86-2.29-10.53-2.29h-173.99c-9.49,0-17.19,7.7-17.19,17.19v325.07c0,9.49,7.7,17.19,17.19,17.19h242.84c9.49,0,17.19-7.7,17.19-17.19V162.32c0-3.67-.8-7.26-2.29-10.53h-56.03Z\"/>\n  <path class=\"f16-2\" d=\"M387.16,144.33l-60.61-60.61c-2.17-2.17-4.7-3.91-7.45-5.16v56.03c0,9.49,7.7,17.19,17.19,17.19h56.03c-1.25-2.75-2.98-5.27-5.16-7.45Z\"/>\n  <rect class=\"f16-1\" x=\"151.48\" y=\"235.51\" width=\"204.24\" height=\"15.77\" rx=\"7.88\" ry=\"7.88\"/>\n  <rect class=\"f16-1\" x=\"151.48\" y=\"298.4\" width=\"204.24\" height=\"15.77\" rx=\"7.88\" ry=\"7.88\"/>\n  <rect class=\"f16-1\" x=\"151.48\" y=\"138.89\" width=\"109.38\" height=\"15.77\" rx=\"7.88\" ry=\"7.88\"/>\n</svg>", "f17": "<svg class=\"ic\" xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 512 512\" fill=\"currentColor\">\n  <defs>\n    <style>\n      .f17-1 {\n        fill: none;\n        stroke: currentColor;\n        stroke-linecap: round;\n        stroke-linejoin: round;\n        stroke-width: 21px;\n      }\n    </style>\n  </defs>\n  <line class=\"f17-1\" x1=\"67.81\" y1=\"107.79\" x2=\"440.87\" y2=\"107.79\"/>\n  <line class=\"f17-1\" x1=\"71.13\" y1=\"404.21\" x2=\"444.19\" y2=\"404.21\"/>\n  <line class=\"f17-1\" x1=\"404.21\" y1=\"67.81\" x2=\"404.21\" y2=\"440.87\"/>\n  <line class=\"f17-1\" x1=\"107.79\" y1=\"71.13\" x2=\"107.79\" y2=\"444.19\"/>\n</svg>"};
+const FUNCS=[{"id": "F01", "name": "畫筆", "desc": "用滑鼠隨手畫出自由線條，例如手寫字或塗鴉", "icon": "f01"}, {"id": "F02", "name": "線條／連接線", "desc": "把兩個圖案用一條線連起來，移動圖案時線會跟著動", "icon": "f02"}, {"id": "F03", "name": "圖形", "desc": "插入方形、圓形、三角形等固定形狀，可填色並輸入文字", "icon": "f03"}, {"id": "F04", "name": "文字", "desc": "在畫布上直接輸入一段文字，沒有底色或外框", "icon": "f04"}, {"id": "F05", "name": "便利貼", "desc": "新增一張彩色小紙片，寫下一則簡短文字，可隨意拖曳", "icon": "f05"}, {"id": "F06", "name": "圖片", "desc": "從電腦上傳或搜尋照片、圖檔放到畫布上", "icon": "f06"}, {"id": "F07", "name": "圖示／貼圖", "desc": "從內建圖庫挑選現成的小圖案或表情符號放到畫布上，不需上傳", "icon": "f07"}, {"id": "F08", "name": "心智圖", "desc": "從中央主題向外長出多層分支，相關點子沿分支分層擺放，沒有箭頭方向", "icon": "f08"}, {"id": "F09", "name": "流程圖", "desc": "用方框與箭頭依序連接各個步驟，表示先後順序與分岔判斷", "icon": "f09"}, {"id": "F10", "name": "組織圖", "desc": "以上下層級排列人員或單位，表示誰隸屬於誰", "icon": "f10"}, {"id": "F11", "name": "表格", "desc": "帶有標題列的列與欄，每列填一筆項目、每欄對應一種項目屬性，欄可設為文字、數字或日期，並可排序、篩選、統計筆數", "icon": "f11"}, {"id": "F12", "name": "網格", "desc": "一片大小相同的空白格子，用來把內容放進格內並排整齊；格子本身沒有標題列", "icon": "f12"}, {"id": "F13", "name": "看板／欄位", "desc": "用多個直欄分組，把卡片在欄與欄之間拖移，例如待辦、進行中、完成", "icon": "f13"}, {"id": "F14", "name": "時間軸", "desc": "沿著日期先後排列事項，每項標示時間點", "icon": "f14"}, {"id": "F15", "name": "卡片", "desc": "可填標題、內容並指派給成員的小卡，比便利貼多出標題與指派", "icon": "f15"}, {"id": "F16", "name": "文件", "desc": "在畫布上建立一份可連續書寫的長篇文件，可分段並加上標題與清單", "icon": "f16"}, {"id": "F17", "name": "框架", "desc": "在畫布上框出一塊區域，把相關內容收在一起，可命名並整體移動", "icon": "f17"}];
+const CATS={"A": [{"name": "發想與記錄想法", "ids": ["F04", "F05", "F08", "F15", "F16"]}, {"name": "說明流程與關係", "ids": ["F02", "F09", "F10"]}, {"name": "整理資料與進度", "ids": ["F11", "F12", "F13", "F14", "F17"]}, {"name": "視覺素材與美化", "ids": ["F01", "F03", "F06", "F07"]}], "B": [{"name": "基礎編輯工具", "ids": ["F01", "F03", "F04"]}, {"name": "獨立內容物件", "ids": ["F05", "F06", "F07", "F15", "F16"]}, {"name": "關係型視覺結構", "ids": ["F02", "F08", "F09", "F10"]}, {"name": "結構化資訊視圖", "ids": ["F11", "F12", "F13", "F14", "F17"]}]};
+const TASKS=[{"id": "T1", "target": "F08", "text": "你想從一個中心主題出發，向外長出一層一層的分支，把相關的點子放在分支上。"}, {"id": "T2", "target": "F11", "text": "你有二十多筆商品，每筆都有品名、數量、單價和上架日期，想一列填一筆、一欄放一種項目；填完後可以依單價由高到低排序，也可以只看數量低於 10 的商品，並在最下方看到總共有幾筆。"}, {"id": "T3", "target": "F07", "text": "你想在畫布上放一個現成的小圖案，例如愛心或笑臉，不用自己畫，也不用從電腦上傳。"}, {"id": "T4", "target": "F05", "text": "你想在畫布上貼一張彩色的小紙片，寫一句簡短的提醒，之後可以隨意拖到別的位置。"}, {"id": "T5", "target": "F14", "text": "你想把幾件事依照日期先後，由左到右排開，每件事都標上日期。"}];
+const LEAD="每一題請選出最適合呈現這個需求、操作上也最省時方便的功能。";
+const WRONG="這不是這題要找的功能，請再選一次。";
+const HINT1="提示：這題要找的功能，可能在你還沒打開過的類別裡，可以再看看其他類別。";
+const T_H1=180000,T_H2=300000,E_H1=3,E_H2=5;
+const $=id=>document.getElementById(id);
+const P=new URLSearchParams(location.search);
+const COND=(P.get('c')||'').toUpperCase();
+const PID=P.get('id')||'TEST';
+const ENDPOINT='https://script.google.com/macros/s/AKfycbz--ZtsBfSNYDOIIfFae-jmMOgMJg7mN_rNv0kZRH2UuQ1087nailAHVbtobB0Vw-e4tQ/exec';/* 部署 Apps Script 後，把網頁應用程式網址貼在這裡 */
+const DEBUG=P.get('debug')==='1';
+const SCHEME=COND[0],PRES=COND[1];
+const valid=/^[AB][123]$/.test(COND);
+const fmap={};FUNCS.forEach(f=>fmap[f.id]=f);
+const catOf=id=>{const c=CATS[SCHEME].find(c=>c.ids.includes(id));return c?c.name:null};
+
+let ti=0,S=null,session={pid:PID,cond:COND,startedAt:null,tasks:[],ua:navigator.userAgent,screen:[innerWidth,innerHeight]};
+let timer=null;
+
+function show(id){['entry','intro','between','form','end'].forEach(k=>$(k).style.display=k===id?'block':'none');$('task').style.display=id==='task'?'flex':'none'}
+function showTask(){['entry','intro','between','form','end'].forEach(k=>$(k).style.display='none');$('task').style.display='flex'}
+
+function entryPage(){
+  show('entry');
+  $('entry').innerHTML='<h1>平台樣本：測試入口</h1><p>正式施測時，受測者的網址會帶有條件代碼，例如 <code>?c=A1&amp;id=P01</code>。<br>c：分類方式（A、B）加說明呈現（1 常駐、2 選取後顯示、3 點ⓘ）。id：受測者編號。</p><div class="links">'+
+  ['A1','A2','A3','B1','B2','B3'].map(c=>`<a href="?c=${c}&id=TEST">${c}</a>`).join('')+'</div><p>加上 <code>&amp;debug=1</code> 可顯示除錯面板（目標功能、錯誤數、經過時間、跳題）。</p>';
+}
+const BG={
+ gender:[["男","Male"],["女","Female"],["其他","Other"],["不願透露","Prefer not to say"]],
+ edu:[["高中職（含以下）","High school or below"],["大學（在學或畢業）","Bachelor's (current or completed)"],["碩士（在學或畢業）","Master's (current or completed)"],["博士（在學或畢業）","Doctoral (current or completed)"]],
+ field:[["文學／語文","Humanities / Languages"],["藝術／設計","Arts / Design"],["教育","Education"],["商業／管理","Business / Management"],["社會科學","Social sciences"],["理工","Science / Engineering"],["資訊","Information technology"],["醫藥衛生","Medicine / Health"],["其他","Other"]],
+ plat:[["Miro","Miro"],["FigJam","FigJam"],["Boardmix","Boardmix"],["Microsoft Whiteboard","Microsoft Whiteboard"],["Google Jamboard","Google Jamboard"],["其他","Other"],["從未使用","Never used"]],
+ freq:[["從未使用","Never"],["一年數次或更少","A few times a year or less"],["每月數次","A few times a month"],["每週數次","A few times a week"],["幾乎每天","Almost every day"]],
+ ctx:[["學校課業／小組作業","Coursework / group assignments"],["工作／會議","Work / meetings"],["設計／創作","Design / creative work"],["教學","Teaching"],["個人筆記／規劃","Personal notes / planning"],["其他","Other"],["從未使用","Never used"]]
+};
+function bgPage(){
+  show('form');
+  const t0=Date.now();
+  const opt=(name,list,type)=>list.map((o,i)=>`<label class="opt"><input type="${type}" name="${name}" value="${o[0]}"><span>${o[0]}${o[0]===o[1]?"":`<small> ${o[1]}</small>`}</span></label>`).join('');
+  const q=(k,zh,en,body,note)=>`<div class="fq" id="q_${k}"><p class="zh" style="margin:0">${zh}</p><p class="en">${en}${note?'<br>'+note:''}</p>${body}</div>`;
+  let h='<h1>基本資料</h1><p class="sub">以下資料僅供研究分析使用，作答沒有對錯。<br><span style="color:var(--sub);font-size:14px">The information below is used for research analysis only. There are no right or wrong answers.</span></p>';
+  h+=q('age','1. 你的年齡','Your age','<input type="number" id="age" min="10" max="99" inputmode="numeric" class="txt" style="width:120px"> 歲 years old');
+  h+=q('gender','2. 你的性別','Your gender',opt('gender',BG.gender,'radio'));
+  h+=q('edu','3. 你目前的最高學歷（含在學）','Your highest education level (including in progress)',opt('edu',BG.edu,'radio'));
+  h+=q('field','4. 你的學群領域','Your field of study or work',opt('field',BG.field,'radio'));
+  h+=q('plat','5. 你用過哪些線上白板平台？','Which online whiteboard platforms have you used?',opt('plat',BG.plat,'checkbox')+'<input type="text" id="platOther" class="txt" placeholder="若選「其他」，請填寫平台名稱 If Other, please specify" style="display:none;margin-top:8px;width:100%">','可複選 Select all that apply');
+  h+=q('freq','6. 你使用線上白板的頻率','How often do you use online whiteboards?',opt('freq',BG.freq,'radio'));
+  h+=q('ctx','7. 你主要在什麼情境使用線上白板？','In what situations do you mainly use online whiteboards?',opt('ctx',BG.ctx,'checkbox')+'<input type="text" id="ctxOther" class="txt" placeholder="若選「其他」，請填寫情境 If Other, please specify" style="display:none;margin-top:8px;width:100%">','可複選 Select all that apply');
+  h+='<button class="btn" id="bgnext" disabled>下一步 Next</button>';
+  $('form').innerHTML=h;window.scrollTo(0,0);
+  const vals=()=>{
+    const r=n=>{const e=document.querySelector(`input[name=${n}]:checked`);return e?e.value:null};
+    const c=n=>[...document.querySelectorAll(`input[name=${n}]:checked`)].map(e=>e.value);
+    return {age:$('age').value?+$('age').value:null,gender:r('gender'),education:r('edu'),field:r('field'),platforms:c('plat'),platformOther:$('platOther').value.trim(),frequency:r('freq'),contexts:c('ctx'),contextOther:$('ctxOther').value.trim()};
+  };
+  const exclusive=n=>document.querySelectorAll(`input[name=${n}]`).forEach(e=>e.addEventListener('change',()=>{
+    if(!e.checked)return;
+    const never=e.value==='從未使用';
+    document.querySelectorAll(`input[name=${n}]`).forEach(o=>{if(o!==e&&(never||o.value==='從未使用'))o.checked=false});
+  }));
+  exclusive('plat');exclusive('ctx');
+  const check=()=>{
+    const v=vals();
+    $('platOther').style.display=v.platforms.includes('其他')?'block':'none';
+    $('ctxOther').style.display=v.contexts.includes('其他')?'block':'none';
+    const okAge=v.age!==null&&v.age>=10&&v.age<=99;
+    const ok=okAge&&v.gender&&v.education&&v.field&&v.platforms.length&&v.frequency&&v.contexts.length&&(!v.platforms.includes('其他')||v.platformOther)&&(!v.contexts.includes('其他')||v.contextOther);
+    $('bgnext').disabled=!ok;
+  };
+  $('form').oninput=check;$('form').onchange=check;
+  $('bgnext').onclick=()=>{session.background=vals();session.backgroundMs=Date.now()-t0;$('form').oninput=null;$('form').onchange=null;introPage()};
+}
+function introPage(){
+  show('intro');
+  $('intro').innerHTML=`<h1>測試說明</h1>
+<p>這是一個線上白板的功能測試，請你依照題目，在測試平台上找出適合的功能。測試中會有 5 道題目。<br>這是在測試平台的設計，不是在測試你，沒有對錯之分，請放心操作。</p>
+<div class="fq"><h3>怎麼操作</h3><ol class="steps">
+<li>每一題的上方會顯示一件「想完成的事」，並且會一直顯示在畫面上方，隨時可以回頭看。</li>
+<li>點擊畫面左側的「＋」，會出現功能類別；點開類別，會看到其中的功能。</li>
+<li>選出你認為最適合的功能後，按「確認選擇」。</li>
+<li>如果選的不是這題要找的功能，系統會請你再選一次，請繼續嘗試，直到選對為止。</li>
+<li>選對後，畫面會顯示該功能，接著請你填寫一份簡短的感受問卷，再進入下一題。</li>
+</ol></div>
+<div class="fq"><h3>請注意</h3><ul class="steps">
+<li>畫面中的縮放、手形、滑鼠等其他按鈕與虛線框都只是示意，無法點擊，請只使用「＋」。</li>
+<li>每一題請選出最適合呈現這個需求、操作上也最省時方便的功能。</li>
+<li>請使用桌機與滑鼠完成；測試過程中請不要重新整理或關閉頁面，也請不要查詢其他資料。</li>
+</ul></div>
+<button class="btn" id="go">開始測試</button>`;
+  window.scrollTo(0,0);
+  $('go').onclick=()=>{session.startedAt=Date.now();startTask()};
+}
+
+
+const SCENES=[
+ {h:"園遊會攤位討論",d:"10/28 週會",t:[[50,33,"預算有限"],[67,41,"要先找場地"],[52,55,"人手夠嗎？"],[64,66,"宣傳要不要做海報"],[77,32,"試吃活動"]],circle:[49,31.5,110,40],cur:[[60,48,"Amy","#2f6fe0"],[80,60,"Ken","#2f9e5b"]]},
+ {h:"週末市集商品",d:"10/28 盤點",t:[[48,30,"蘋果　20 個　30 元"],[48,38,"香蕉　15 把　25 元"],[48,46,"柳丁　30 個　20 元"]],n:[[48,56,"……還有二十多筆要加進來"]],cur:[[68,36,"Amy","#2f6fe0"],[72,62,"Ken","#2f9e5b"]]},
+ {h:"生日派對邀請",d:"草稿",t:[[48,30,"6/15（六）下午 3 點"],[48,38,"地點：小美家"],[48,46,"歡迎帶朋友一起來！"]],n:[[66,58,"這裡想加點裝飾"]],cur:[[64,50,"Amy","#2f6fe0"],[78,66,"Ken","#2f9e5b"]]},
+ {h:"專題會議",d:"10/30",t:[[48,30,"下週一前交初稿"],[48,38,"別忘了帶筆電"],[66,46,"討論第二章"],[52,56,"問老師報告格式"]],n:[[60,68,"還有一件事要記得……"]],cur:[[70,34,"Amy","#2f6fe0"],[80,60,"Ken","#2f9e5b"]]},
+ {h:"專案時程討論",d:"草稿",t:[[52,30,"活動當天 4/20"],[70,40,"報名截止 3/10"],[48,48,"場地確認 3/25"],[66,58,"海報完成 4/5"]],n:[[52,70,"日期還沒排好"]],cur:[[62,44,"Amy","#2f6fe0"],[82,64,"Ken","#2f9e5b"]]}
+];
+function cursor(x,y,name,col){return `<div class="cur" style="left:${x}%;top:${y}%"><svg width="20" height="22" viewBox="0 0 20 22"><path d="M2 2 L2 18 L7 13.5 L10.5 20 L13.2 18.8 L9.8 12.4 L16 12 Z" fill="${col}" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/></svg><span style="background:${col}">${name}</span></div>`}
+function renderScene(i){
+  const c=SCENES[i];let h=`<div class="a h" style="left:46%;top:8%">${c.h}</div><div class="a g" style="left:46%;top:16%">${c.d}</div><svg class="a" style="left:45.5%;top:20%" width="230" height="16" viewBox="0 0 230 16"><path d="M3 9 C 30 2, 55 15, 85 8 S 140 3, 170 9 S 215 12, 227 6" fill="none" stroke="#e0564a" stroke-width="3" stroke-linecap="round"/></svg>`;
+  (c.t||[]).forEach(a=>h+=`<div class="a t" style="left:${a[0]}%;top:${a[1]}%">${a[2]}</div>`);
+  (c.n||[]).forEach(a=>h+=`<div class="a n" style="left:${a[0]}%;top:${a[1]}%">${a[2]}</div>`);
+  if(c.circle)h+=`<svg class="a" style="left:${c.circle[0]}%;top:${c.circle[1]}%" width="${c.circle[2]}" height="${c.circle[3]}" viewBox="0 0 ${c.circle[2]} ${c.circle[3]}"><ellipse cx="${c.circle[2]/2}" cy="${c.circle[3]/2}" rx="${c.circle[2]/2-4}" ry="${c.circle[3]/2-5}" fill="none" stroke="#e0564a" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+  (c.cur||[]).forEach(a=>h+=cursor(a[0],a[1],a[2],a[3]));
+  $('fake').innerHTML=h;
+}
+function startTask(){
+  const T=TASKS[ti];
+  S={task:T,t0:null,ev:[],errors:0,confirms:[],hint:{1:null,2:null},lastCat:null,opened:[],layer:0,cat:null,sel:null,info:{},done:false,shownAt:Date.now()};
+  renderScene(ti);
+  $('pg').textContent=`第 ${ti+1} 題 / ${TASKS.length}`;
+  $('lead').textContent=LEAD;$('q').textContent=T.text;
+  $('hint').style.display='none';$('obj').style.display='none';$('donebar').style.display='none';
+  $('panel').style.display='none';$('plus').classList.remove('on');
+  showTask();placeArrow();
+  clearInterval(timer);timer=setInterval(tick,500);
+  log('task_shown');
+  dbg();
+}
+function placeArrow(){const c=$('canvas').getBoundingClientRect(),p=$('plus').getBoundingClientRect(),a=$('pointer');a.style.display='flex';a.style.top=(p.top-c.top+p.height/2-a.offsetHeight/2)+'px';a.style.left=(p.right-c.left+14)+'px'}
+addEventListener('resize',()=>{if(S&&S.t0===null&&!S.done)placeArrow()});
+function now(){return S.t0===null?0:Date.now()-S.t0}
+function log(type,extra){S.ev.push(Object.assign({t:now(),abs:Date.now(),type},extra||{}))}
+
+$('plus').onclick=()=>{
+  if(S.done)return;
+  $('pointer').style.display='none';
+  if(S.t0===null){S.t0=Date.now();log('timer_start')}
+  if($('panel').style.display==='flex'){closePanel();return}
+  S.layer=2;S.cat=null;S.sel=null;S.info={};
+  $('panel').style.display='flex';$('plus').classList.add('on');
+  log('open_plus');render();
+};
+function closePanel(){$('panel').style.display='none';$('plus').classList.remove('on');log('close_panel')}
+
+function render(){
+  const head=$('phead'),body=$('pbody'),foot=$('pfoot');
+  foot.style.display='none';foot.innerHTML='';
+  if(S.layer===2){
+    head.innerHTML='<span>更多功能：選擇類別</span>';
+    body.innerHTML='';
+    CATS[SCHEME].forEach(c=>{const b=document.createElement('button');b.className='cat';b.textContent=c.name;b.onclick=()=>openCat(c);body.appendChild(b)});
+  }else{
+    const c=S.cat;
+    head.innerHTML='<button class="back" id="back">‹ 返回</button><span>'+c.name+'</span>';
+    $('back').onclick=()=>{log('back',{from:c.name});S.layer=2;S.cat=null;S.sel=null;S.info={};render()};
+    body.innerHTML='';
+    c.ids.forEach(id=>{
+      const f=fmap[id];
+      const d=document.createElement('div');d.className='fn'+(S.sel===id?' sel':'');
+      const row=document.createElement('div');row.className='row';
+      row.innerHTML=`<div class="icb">${ICONS[f.icon]}</div><div class="nm">${f.name}${PRES==='1'?'<span class="d">'+f.desc+'</span>':''}</div>`;
+      if(PRES==='3'){
+        const i=document.createElement('button');i.className='i'+(S.info[id]?' open':'');i.textContent='i';i.setAttribute('aria-label','說明');
+        i.onclick=e=>{e.stopPropagation();S.info[id]=!S.info[id];log('info_click',{fn:id,open:!!S.info[id]});render()};
+        row.appendChild(i);
+      }
+      row.onclick=()=>{S.sel=id;log('select_fn',{fn:id,cat:c.name});render()};
+      d.appendChild(row);
+      if(PRES==='3'&&S.info[id]){const x=document.createElement('div');x.className='xd';x.textContent=f.desc;d.appendChild(x)}
+      body.appendChild(d);
+    });
+    foot.style.display='flex';
+    const sf=S.sel?fmap[S.sel]:null;
+    let info='';
+    if(PRES==='2'){info=sf?`<b>${sf.name}</b>：${sf.desc}`:'選取功能後，說明會顯示在這裡。'}
+    else{info=sf?`已選：<b>${sf.name}</b>`:'請先選一個功能。'}
+    foot.innerHTML=`<div class="info" id="finfo">${info}${S.wrong?`<div class="wrong">${WRONG}</div>`:''}</div><button class="btn" id="ok" ${sf?'':'disabled'}>確認選擇</button>`;
+    $('ok').onclick=confirm;
+  }
+}
+function openCat(c){
+  S.layer=3;S.cat=c;S.sel=null;S.info={};S.wrong=false;
+  S.lastOpened=c.name;S.opened.push(c.name);
+  log('open_cat',{cat:c.name});render();
+}
+function confirm(){
+  const id=S.sel;if(!id)return;
+  const ok=id===S.task.target;
+  const rec={fn:id,cat:catOf(id),ok,t:now()};
+  S.confirms.push(rec);S.lastCat=rec.cat;
+  log('confirm',{fn:id,cat:rec.cat,ok});
+  if(ok){finishTask();return}
+  S.errors++;S.wrong=true;S.sel=null;render();
+  checkHints();dbg();
+}
+function tick(){if(S.t0===null||S.done)return;checkHints();dbg()}
+function checkHints(){
+  if(S.t0===null||S.done)return;
+  const el=now();
+  if(!S.hint[1]&&(S.errors>=E_H1||el>=T_H1)){showHint(1,HINT1)}
+  else if(S.hint[1]&&!S.hint[2]&&(S.errors>E_H2||el>T_H2)){
+    const ref=S.confirms.length?S.lastCat:(S.lastOpened||null);
+    const tc=catOf(S.task.target);
+    let tx;
+    if(!ref)tx=HINT1;
+    else if(ref===tc)tx=`提示：這題要找的功能就在「${tc}」這個類別裡，請再看看這個類別的其他功能。`;
+    else tx=`提示：「${ref}」這個類別裡沒有這題要找的功能，請看看其他類別。`;
+    showHint(2,tx,ref);
+  }
+}
+function showHint(l,tx,ref){S.hint[l]=now();$('hintx').textContent=tx;$('hint').style.display='flex';log('hint_shown',{level:l,ref:ref||null,errors:S.errors})}
+$('hintok').onclick=()=>{$('hint').style.display='none';log('hint_dismiss')};
+
+function summarize(){
+  const T=S.task,tc=catOf(T.target),fc=S.confirms[0]||null;
+  return{task:T.id,target:T.target,targetCat:tc,totalMs:now(),errors:S.errors,
+    firstConfirm:fc?{fn:fc.fn,cat:fc.cat,ok:fc.ok,ms:fc.t}:null,
+    firstFnCorrect:fc?fc.ok:null,firstCatCorrect:fc?fc.cat===tc:null,
+    firstOpenedCat:S.opened[0]||null,firstOpenedCatCorrect:S.opened.length?S.opened[0]===tc:null,
+    catOpens:S.opened.length,distinctCats:new Set(S.opened).size,
+    backs:S.ev.filter(e=>e.type==='back').length,infoClicks:S.ev.filter(e=>e.type==='info_click'&&e.open).length,
+    hint1Ms:S.hint[1],hint2Ms:S.hint[2],hinted:!!S.hint[1],events:S.ev};
+}
+
+const TLX=[
+ ["mental","心智需求","Mental Demand","低","Low","高","High","需要多少心智與知覺活動（例如思考、決定、計算、記憶、看、搜尋等）？任務是容易或費力、簡單或複雜、嚴苛或寬容？","How much mental and perceptual activity was required (e.g., thinking, deciding, calculating, remembering, looking, searching, etc.)? Was the task easy or demanding, simple or complex, exacting or forgiving?"],
+ ["physical","體力需求","Physical Demand","低","Low","高","High","需要多少體力活動（例如推、拉、轉、控制、啟動等）？任務是容易或費力、緩慢或迅速、鬆懈或吃力、輕鬆或勞累？","How much physical activity was required (e.g., pushing, pulling, turning, controlling, activating, etc.)? Was the task easy or demanding, slow or brisk, slack or strenuous, restful or laborious?"],
+ ["temporal","時間需求","Temporal Demand","低","Low","高","High","因任務或任務環節出現的速度或步調，你感受到多少時間壓力？步調是緩慢悠閒，還是快速慌亂？","How much time pressure did you feel due to the rate or pace at which the tasks or task elements occurred? Was the pace slow and leisurely or rapid and frantic?"],
+ ["performance","表現","Performance","好","Good","差","Poor","你覺得自己達成任務目標（由實驗者或你自己設定）有多成功？你對自己達成這些目標的表現有多滿意？","How successful do you think you were in accomplishing the goals of the task set by the experimenter (or yourself)? How satisfied were you with your performance in accomplishing these goals?"],
+ ["effort","努力","Effort","低","Low","高","High","為達到你的表現水準，你（在心智與體力上）需要多努力？","How hard did you have to work (mentally and physically) to accomplish your level of performance?"],
+ ["frustration","挫折","Frustration Level","低","Low","高","High","在任務期間，你感到多不安、氣餒、煩躁、有壓力、惱怒，相對於有安全感、滿足、知足、放鬆、安逸？","How insecure, discouraged, irritated, stressed and annoyed versus secure, gratified, content, relaxed and complacent did you feel during the task?"]
+];
+const DIS=[
+ ["我覺得迷路了。","I felt lost."],
+ ["我覺得自己好像一直在原地繞圈。","I felt like I was going around in circles."],
+ ["我很難找到之前看過的頁面。","It was difficult to find a page that I had previously viewed."],
+ ["在頁面之間移動是個問題。","Navigating between pages was a problem."],
+ ["我不知道怎麼到達我想去的地方。","I didn't know how to get to my desired location."],
+ ["我覺得失去方向感。","I felt disoriented."],
+ ["瀏覽了一陣子後，我不知道接下來該往哪裡去。","After browsing for a while I had no idea where to go next."]
+];
+function tlxPage(){
+  const t0=Date.now(),vals={};
+  show('form');
+  let h=`<h1>第 ${ti+1} 題：請回答以下感受</h1><p class="note">請針對你剛才完成的這個任務作答。<br>Please answer with respect to the task you just completed.</p>`;
+  TLX.forEach(q=>{h+=`<div class="fq"><h3>${q[1]} ${q[2]}</h3><p class="zh">${q[7]}</p><p class="en">${q[8]}</p><div class="sl" data-k="${q[0]}"><div class="ln"></div><div class="tk" style="left:0"></div><div class="tk" style="left:calc(100% - 2px)"></div><div class="th"></div><div class="bb"></div></div><div class="ends"><span>${q[3]} ${q[4]}</span><span>${q[5]} ${q[6]}</span></div></div>`});
+  h+='<button class="btn" id="fsub" disabled>送出，繼續</button>';
+  $('form').innerHTML=h;window.scrollTo(0,0);
+  document.querySelectorAll('.sl').forEach(el=>{
+    const k=el.dataset.k;
+    for(let n=1;n<20;n++){const t=document.createElement('div');t.className='st';t.style.left=(n*5)+'%';el.insertBefore(t,el.querySelector('.th'))}
+    const set=e=>{const r=el.getBoundingClientRect();let v=Math.round((e.clientX-r.left)/r.width*20)*5;v=Math.max(0,Math.min(100,v));vals[k]=v;el.classList.add('on');el.querySelector('.th').style.left=v+'%';const bb=el.querySelector('.bb');bb.style.left=v+'%';bb.textContent=v;$('fsub').disabled=Object.keys(vals).length<TLX.length};
+    let drag=false;
+    el.addEventListener('pointerdown',e=>{drag=true;el.setPointerCapture(e.pointerId);set(e)});
+    el.addEventListener('pointermove',e=>{if(drag)set(e)});
+    el.addEventListener('pointerup',()=>{drag=false});
+  });
+  $('fsub').onclick=()=>{session.tasks[ti].tlx=Object.assign({},vals);session.tasks[ti].tlxMs=Date.now()-t0;
+    if(ti<TASKS.length-1){ti++;startTask()}else disPage()};
+}
+function disPage(){
+  const t0=Date.now(),vals={};show('form');
+  let h=`<h1>最後一部分</h1><div class="fq"><p class="zh">接下來的題目，是關於你剛才完成五個任務時，在這個測試平台尋找功能的整體感受，請只針對這個測試平台作答。題目中的「頁面」，指你在平台上看到的每一個畫面，例如點開「＋」後出現的類別畫面、打開某個類別後出現的功能畫面。「瀏覽」指你在這些畫面之間查找功能的過程。請依照整體經驗，選出最符合的頻率，沒有對錯。</p><p class="en" style="margin:0">The following questions concern your overall experience of searching for functions on this test platform while completing the five tasks. Please answer with respect to this test platform only. In these items, "page" means each screen you saw on the platform, for example the category screen that appears after opening "＋" and the function screen that appears after opening a category; "browsing" means the process of looking for functions across these screens. Please choose the frequency that best fits your overall experience; there are no right or wrong answers.</p></div>`;
+  DIS.forEach((q,i)=>{h+=`<div class="fq"><p class="zh" style="margin:0">${i+1}. ${q[0]}</p><p class="en">${q[1]}</p><div class="likert">${[1,2,3,4,5,6,7].map(n=>`<label><input type="radio" name="d${i}" value="${n}">${n}<em class="le">${n===1?'從不<br>Never':n===7?'總是<br>Always':'&nbsp;<br>&nbsp;'}</em></label>`).join('')}</div></div>`});
+  h+='<button class="btn" id="dsub" disabled>送出</button>';
+  $('form').innerHTML=h;window.scrollTo(0,0);
+  document.querySelectorAll('.likert input').forEach(r=>r.onchange=()=>{vals[r.name]=+r.value;$('dsub').disabled=Object.keys(vals).length<DIS.length});
+  $('dsub').onclick=()=>{session.disorientation=DIS.map((q,i)=>vals['d'+i]);session.disorientationMs=Date.now()-t0;interviewPage()};
+}
+
+const OBJ={
+ F08:`<svg viewBox="0 0 360 260" width="100%"><g stroke="#4b5563" stroke-width="2.5" fill="none" stroke-linecap="round"><path d="M180 130 C 140 100,110 70,80 50"/><path d="M180 130 C 220 100,250 70,285 50"/><path d="M180 130 C 140 165,110 195,80 215"/><path d="M180 130 C 220 165,250 195,285 215"/><path d="M80 50 L30 35"/><path d="M80 50 L35 75"/><path d="M285 215 L335 235"/></g><rect x="132" y="108" width="96" height="44" rx="22" fill="#2f5fd0"/><text x="180" y="136" text-anchor="middle" font-size="16" fill="#fff">中心主題</text><g fill="#fff" stroke="#4b5563" stroke-width="2"><rect x="38" y="36" width="80" height="30" rx="15"/><rect x="246" y="36" width="80" height="30" rx="15"/><rect x="38" y="200" width="80" height="30" rx="15"/><rect x="246" y="200" width="80" height="30" rx="15"/></g></svg>`,
+ F11:`<div style="background:#fff;border:1px solid #cfd2d6;border-radius:8px;overflow:hidden;font-size:14px"><div style="display:flex;background:#f1f2f4;color:#5f6670;border-bottom:1px solid #cfd2d6"><div style="flex:1;padding:8px 10px">品名</div><div style="flex:1;padding:8px 10px">數量</div><div style="flex:1;padding:8px 10px">單價</div><div style="flex:1.3;padding:8px 10px">上架日期</div></div>${[1,2,3,4].map(()=>'<div style="display:flex;border-bottom:1px solid #e4e6e9;height:38px"><div style="flex:1"></div><div style="flex:1"></div><div style="flex:1"></div><div style="flex:1.3"></div></div>').join('')}<div style="padding:8px 10px;color:#5f6670;text-align:center">Count 4</div></div>`,
+ F07:`<svg viewBox="0 0 300 150" width="100%"><path d="M80 120 C 20 80,25 35,62 30 C 78 28,82 40,80 46 C 84 40,98 28,114 33 C 148 44,140 85,80 120 Z" fill="#e0564a"/><circle cx="215" cy="75" r="52" fill="#f6c935" stroke="#d9a400" stroke-width="3"/><circle cx="198" cy="64" r="6" fill="#3b3f45"/><circle cx="232" cy="64" r="6" fill="#3b3f45"/><path d="M190 88 Q215 112 240 88" fill="none" stroke="#3b3f45" stroke-width="4" stroke-linecap="round"/></svg>`,
+ F05:`<div style="width:170px;height:170px;background:#ffe27a;box-shadow:0 6px 14px rgba(0,0,0,.18);transform:rotate(-3deg);padding:16px;font-size:16px;color:#4a4325;position:relative">寫下提醒…<div style="position:absolute;right:0;bottom:0;width:0;height:0;border-style:solid;border-width:0 0 28px 28px;border-color:transparent transparent #fff #e8c853"></div></div>`,
+ F14:`<svg viewBox="0 0 360 150" width="100%"><line x1="10" y1="75" x2="350" y2="75" stroke="#4b5563" stroke-width="3" stroke-linecap="round"/><g fill="#2f5fd0"><circle cx="60" cy="75" r="9"/><circle cx="170" cy="75" r="9"/><circle cx="290" cy="75" r="9"/></g><g font-size="14" fill="#3b3f45" text-anchor="middle"><text x="60" y="108">3/10</text><text x="170" y="108">3/25</text><text x="290" y="108">4/20</text></g><g fill="#fff" stroke="#4b5563" stroke-width="2"><rect x="22" y="22" width="76" height="30" rx="6"/><rect x="132" y="22" width="76" height="30" rx="6"/><rect x="252" y="22" width="76" height="30" rx="6"/></g></svg>`
+};
+function showComplete(){
+  $('panel').style.display='none';$('plus').classList.remove('on');$('hint').style.display='none';
+  $('obj').innerHTML=OBJ[S.task.target]||'';$('obj').style.display='block';$('donebar').style.display='flex';
+  const t0=Date.now();
+  $('doneok').onclick=()=>{session.tasks[ti].completeScreenMs=Date.now()-t0;tlxPage()};
+}
+function finishTask(){
+  S.done=true;clearInterval(timer);$('pointer').style.display='none';log('task_done');
+  $('panel').style.display='none';$('plus').classList.remove('on');$('hint').style.display='none';
+  session.tasks.push(summarize());
+  showComplete();
+}
+const INT_SUB=[
+ ["功能的分類方式","How functions were grouped into categories"],
+ ["圖示、名稱、說明文字","Icons, names, and descriptions"],
+ ["尋找功能的過程","The process of searching for functions"],
+ ["其他（不屬於以上項目的，請在此補充）","Other (anything not covered above)"]
+];
+const INT_PARTS=[
+ {k:"pros",zh:"你覺得這個平台有哪些優點？哪些地方讓你覺得順手、容易找到功能？",en:"What did you like about this platform? What made it easy to find functions?",hint:"可就下列項目填寫，有想到的才需要寫。"},
+ {k:"cons",zh:"你覺得有哪些缺點？哪些地方讓你覺得困難、困惑、容易選錯，或曾經卡住？",en:"What did you dislike? What was difficult, confusing, easy to get wrong, or made you feel stuck?",hint:"可就下列項目填寫，有想到的才需要寫；若有想改進的地方也歡迎一併寫下。"}
+];
+function interviewPage(){
+  const t0=Date.now();show('form');
+  let h='<h1>使用感想</h1><p>最後是幾個開放式問題，請依照你的實際感受，用自己的話寫下來，沒有標準答案。標示 * 的題目為必填，其他為選填。<br><span style="color:var(--sub);font-size:14px">The last part consists of a few open-ended questions. Please answer in your own words; there are no right or wrong answers. Questions marked * are required; the others are optional.</span></p>';
+  INT_PARTS.forEach((pt,pi)=>{
+    h+=`<div class="fq"><p class="zh" style="margin:0">${pi+1}. ${pt.zh} *</p><p class="en">${pt.en}<br>${pt.hint}（至少填寫其中一項 Please fill in at least one item.）</p>`;
+    INT_SUB.forEach((sb,si)=>{h+=`<p class="zh" style="margin:10px 0 4px;font-size:15px">・${sb[0]}<span style="color:var(--sub);font-size:13px"> ${sb[1]}</span></p><textarea class="txt" id="int_${pt.k}${si}" rows="2" style="width:100%;resize:vertical;min-height:0;height:64px"></textarea>`});
+    h+='</div>';
+  });
+  h+=`<div class="fq"><p class="zh" style="margin:0">3. 整體來說，你覺得這個測試平台用起來的感想如何？（選填）</p><p class="en">Overall, what did you think of using this test platform? (optional)</p><textarea class="txt" id="int_all" rows="4" style="width:100%;resize:vertical"></textarea></div>`;
+  h+='<button class="btn" id="isub" disabled>送出</button>';
+  $('form').innerHTML=h;window.scrollTo(0,0);
+  const v=id=>$(id).value.trim();
+  const anySub=k=>INT_SUB.some((_,si)=>v(`int_${k}${si}`));
+  const chk=()=>{$('isub').disabled=!(anySub('pros')&&anySub('cons'))};
+  $('form').oninput=chk;
+  $('isub').onclick=()=>{
+    session.interview={overall:v('int_all')};
+    INT_PARTS.forEach(pt=>{session.interview[pt.k]=INT_SUB.map((sb,si)=>({item:sb[0],a:v(`int_${pt.k}${si}`)}))});
+    session.interviewMs=Date.now()-t0;$('form').oninput=null;endPage();
+  };
+}
+function endPage(){
+  show('end');session.finishedAt=Date.now();
+  const js=JSON.stringify(session,null,1);
+  $('end').innerHTML='<h1>測試結束</h1><p id="est">'+(ENDPOINT?'正在送出資料，請稍候，先不要關閉頁面……':'（尚未設定資料接收網址，目前只在本機顯示結果。）')+'</p><p><button class="btn" id="retry" style="display:none">重新送出</button> <button class="btn ghost" id="dl" style="display:none">下載結果 JSON</button></p><textarea id="out" readonly style="display:none"></textarea>';
+  $('out').value=js;
+  $('dl').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([js],{type:'application/json'}));a.download=`result_${PID}_${COND}.json`;a.click()};
+  const fail=()=>{$('est').innerHTML='資料送出失敗。請確認網路連線後按「重新送出」；若仍失敗，請按「下載結果 JSON」並將檔案傳給研究者。';$('retry').style.display='';$('dl').style.display=''};
+  const send=()=>{
+    if(!ENDPOINT){$('dl').style.display='';$('out').style.display='block';return}
+    $('est').textContent='正在送出資料，請稍候，先不要關閉頁面……';$('retry').style.display='none';
+    fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(session)})
+      .then(()=>{$('est').textContent='資料已送出，感謝你的參與！可以關閉這個頁面了。';session.submitted=true})
+      .catch(fail);
+  };
+  $('retry').onclick=send;send();
+}
+function dbg(){
+  if(!DEBUG||!S)return;const d=$('debug');d.style.display='block';
+  d.innerHTML=`cond ${COND} / ${PID}<br>target ${S.task.target} ${fmap[S.task.target].name}（${catOf(S.task.target)}）<br>errors ${S.errors}　elapsed ${(now()/1000).toFixed(0)}s<br>hint1 ${S.hint[1]!==null}　hint2 ${S.hint[2]!==null}<br><button id="dskip">跳過本題</button>`;
+  $('dskip').onclick=()=>{if(S.t0===null)S.t0=Date.now();finishTask()};
+}
+if(!valid)entryPage();else bgPage();
+</script>
+</body>
+</html>
