@@ -258,7 +258,6 @@ function studyPage(){
   show('intro');
   $('intro').innerHTML=`<h1>線上協作白板功能測試</h1>
 <div class="fq"><h3>實驗名稱</h3><p style="margin:0">線上協作白板平台之資訊呈現易用性研究</p></div>
-<div class="fq"><h3>測試費用</h3><p style="margin:0 0 6px"><b>完成全部測試後，可獲得新台幣 100 元測試費用。</b>領取方式可在測試最後選擇：</p><ol class="steps"><li>LINE Pay 轉帳（需留下稱呼方式與 LINE ID）</li><li>7-ELEVEN 商品禮券（需留下稱呼方式與 Email）</li><li>由研究者協助完成你的實驗（需留下稱呼方式與聯絡方式）</li></ol><p style="margin:6px 0 0">這些聯絡資料只用來發放測試費用，與你的測試資料分開存放，不會和你的作答內容放在一起，測試費用發放完畢後會刪除。</p></div>
 <div class="fq"><h3>實驗目的</h3><p style="margin:0 0 6px">本研究旨在了解線上協作白板的功能在介面上的呈現方式，如何影響使用者尋找、辨識與選擇適合功能的表現與使用感受，作為改善白板介面設計的參考。</p></div>
 <div class="fq"><h3>實驗內容</h3><ol class="steps">
 <li>填寫匿名基本資料。</li>
@@ -271,6 +270,7 @@ function studyPage(){
 <li>你的參與完全出於自願，可以在任何時間退出，不需說明理由。</li>
 <li>本研究沒有任何已知或可預見的生理或心理風險。</li></ol></div>
 <div class="fq"><h3>實驗聯絡人</h3><p style="margin:0">台科大設計所 林庭而（rowling31309@gmail.com）</p></div>
+<div class="fq"><h3>測試費用</h3><p style="margin:0 0 6px"><b>完成全部測試後，可獲得新台幣 100 元測試費用。</b>領取方式可在測試最後選擇：</p><ol class="steps"><li>LINE Pay 轉帳（需留下稱呼方式與 LINE ID）</li><li>7-ELEVEN 商品禮券（需留下稱呼方式與 Email）</li><li>由研究者協助完成你的實驗（需留下稱呼方式與聯絡方式）</li></ol><p style="margin:6px 0 0">這些聯絡資料只用來發放測試費用，與你的測試資料分開存放，不會和你的作答內容放在一起，測試費用發放完畢後會刪除。</p></div>
 <button class="btn" id="stnext">開始填寫基本資料</button>`;
   window.scrollTo(0,0);
   $('stnext').onclick=bgPage;
@@ -750,7 +750,6 @@ function devicePage(){
   show('intro');
   const mob=(matchMedia('(pointer:coarse)').matches&&!matchMedia('(any-pointer:fine)').matches)||Math.min(screen.width,screen.height)<600;
   $('intro').innerHTML=`<h1>開始前請先確認裝置</h1>
-<div class="fq" style="border-left:4px solid #2f9e5b;background:#eef8f1"><p style="margin:0"><b>完成全部測試，可獲得新台幣 100 元測試費用。</b>領取方式請見下一頁的說明。</p></div>
 <div class="fq"><p style="margin:0 0 10px;font-size:18px"><b>本測試需要使用電腦（桌機或筆電）與滑鼠或觸控板完成。</b></p>
 <ul class="steps"><li>請不要使用手機或平板。</li><li>測試約需 15–20 分鐘，過程中請不要重新整理或關閉頁面。</li><li>如果你現在不是用電腦開啟這個連結，請把連結傳到電腦，再用電腦的瀏覽器開啟。</li></ul></div>
 ${mob?'<div class="fq" style="border-left:4px solid #d64545;background:#fdf0f0"><p style="margin:0"><b>偵測到你可能正在使用手機或平板。</b>請改用電腦開啟這個連結；若你確定正在使用電腦與滑鼠或觸控板，請勾選下方確認後繼續。</p></div>':''}
