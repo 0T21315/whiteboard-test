@@ -707,7 +707,7 @@ function interviewPage(){
   $('isub').onclick=()=>{
     session.interview={pros:v('int_pros'),cons:v('int_cons'),overall:v('int_all')};
     session.interview.review=WR.map((w,wi)=>({task:session.tasks[w.ti].task,no:w.ti+1,kind:w.kind,name:w.name,fn:w.fn||null,a:v('rv_'+wi)}));
-    session.interviewMs=Date.now()-t0;$('form').oninput=null;rewardPage();
+    session.interviewMs=Date.now()-t0;$('form').oninput=null;uploadPage();
   };
 }
 let REWARD=null;/* 領取測試費用的聯絡資料：不放進 session，另外送到獨立的表單 */
@@ -718,7 +718,7 @@ function rewardPage(){
    ['seven','7-ELEVEN 商品禮券（100 元）',[['nickname','稱呼方式','我們該怎麼稱呼你？'],['email','Email','禮券會寄到這個信箱']]],
    ['help','由研究者協助完成我的實驗',[['nickname','稱呼方式','我們該怎麼稱呼你？'],['contact','聯絡方式','例如 LINE ID 或 Email，方便研究者與你聯絡']]],
    ['none','不需要測試費用，謝謝',[]]];
-  let h='<h1>領取測試費用</h1><p>謝謝你完成測試！請選擇測試費用（新台幣 100 元）的領取方式，並留下領取所需的資料。</p><p class="note">這些聯絡資料只用來發放測試費用，與你剛才的作答資料分開存放，不會連結到你的作答內容，測試費用發放完畢後會刪除。</p>';
+  let h='<h1>領取測試費用</h1><p>你的作答資料已回傳完成，謝謝你完成測試！請選擇測試費用（新台幣 100 元）的領取方式，並留下領取所需的資料。</p><p class="note">這些聯絡資料只用來發放測試費用，與你剛才的作答資料分開存放，不會連結到你的作答內容，測試費用發放完畢後會刪除。</p>';
   h+='<div class="fq">'+OPT.map((o,i)=>`<label style="display:flex;gap:10px;align-items:flex-start;margin:0 0 12px;cursor:pointer;font-size:16px"><input type="radio" name="rw" value="${o[0]}" style="width:20px;height:20px;margin-top:2px;flex:none"><span>${o[1]}</span></label>`).join('')+'</div>';
   h+='<div id="rwf"></div><button class="btn" id="rwsub" disabled>送出</button>';
   $('form').innerHTML=h;window.scrollTo(0,0);
@@ -734,26 +734,35 @@ function rewardPage(){
   $('rwsub').onclick=()=>{
     const o=cur();REWARD={type:'reward',method:o[0],methodName:o[1]};
     o[2].forEach(f=>{REWARD[f[0]]=$('rw_'+f[0]).value.trim()});
-    session.rewardMethod=o[0];/* 只記錄選了哪種方式，不含聯絡資料 */
-    $('form').oninput=null;endPage();
+    $('form').oninput=null;rewardDonePage();
   };
 }
-function endPage(){
+const postJSON=(o,ms)=>{const ac=new AbortController();const tm=setTimeout(()=>ac.abort(),ms||120000);return fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(o),signal:ac.signal}).finally(()=>clearTimeout(tm))};
+/* 先回傳作答資料（較慢），完成後才進入領取測試費用的頁面 */
+function uploadPage(){
   show('end');session.finishedAt=Date.now();
   const js=JSON.stringify(session,null,1);
-  $('end').innerHTML='<h1>測試結束</h1><p id="est">'+(ENDPOINT?'正在送出資料，請稍候，先不要關閉頁面……':'（尚未設定資料接收網址，目前只在本機顯示結果。）')+'</p><p><button class="btn" id="retry" style="display:none">重新送出</button> <button class="btn ghost" id="dl" style="display:none">下載結果 JSON</button></p><textarea id="out" readonly style="display:none"></textarea>';
+  $('end').innerHTML='<h1>正在回傳你的作答資料</h1><p id="est">回傳需要一點時間，請稍候，先不要關閉或重新整理頁面。完成後會自動進入下一頁，填寫測試費用的領取資料。</p><p><button class="btn" id="retry" style="display:none">重新送出</button> <button class="btn ghost" id="dl" style="display:none">下載結果 JSON</button></p><textarea id="out" readonly style="display:none"></textarea>';
   $('out').value=js;
   $('dl').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([js],{type:'application/json'}));a.download=`result_${PID}_${COND}.json`;a.click()};
-  const fail=()=>{$('est').innerHTML='資料送出失敗。請確認網路連線後按「重新送出」；若仍失敗，請按「下載結果 JSON」並將檔案傳給研究者。';$('retry').style.display='';$('dl').style.display=''};
-  const post=o=>fetch(ENDPOINT,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(o)});
-  let mainOk=false,rwOk=!REWARD||REWARD.method==='none';
+  if(!ENDPOINT){rewardPage();return}
   const send=()=>{
-    if(!ENDPOINT){$('dl').style.display='';$('out').style.display='block';return}
-    $('est').textContent='正在送出資料，請稍候，先不要關閉頁面……';$('retry').style.display='none';
-    const jobs=[];
-    if(!mainOk)jobs.push(post(session).then(()=>{mainOk=true;session.submitted=true}));
-    if(!rwOk)jobs.push(post(REWARD).then(()=>{rwOk=true}));
-    Promise.all(jobs).then(()=>{$('est').textContent=(REWARD&&REWARD.method!=='none')?'資料已送出，感謝你的參與！測試費用會依你選擇的方式與你聯絡或發放。可以關閉這個頁面了。':'資料已送出，感謝你的參與！可以關閉這個頁面了。'}).catch(fail);
+    $('est').textContent='正在回傳資料，請稍候，先不要關閉或重新整理頁面……';$('retry').style.display='none';
+    postJSON(session).then(()=>{session.submitted=true;rewardPage()}).catch(()=>{
+      $('est').innerHTML='資料送出失敗。請確認網路連線後按「重新送出」；若仍失敗，請按「下載結果 JSON」並將檔案傳給研究者。';$('retry').style.display='';$('dl').style.display=''});
+  };
+  $('retry').onclick=send;send();
+}
+/* 領取資料送出（資料量小，很快） */
+function rewardDonePage(){
+  show('end');
+  const none=!REWARD||REWARD.method==='none';
+  const thanks=none?'感謝你的參與！可以關閉這個頁面了。':'感謝你的參與！測試費用會依你選擇的方式與你聯絡或發放。可以關閉這個頁面了。';
+  $('end').innerHTML='<h1>測試結束</h1><p id="est">'+(none||!ENDPOINT?thanks:'正在送出領取資料，請稍候，先不要關閉頁面……')+'</p><p><button class="btn" id="retry" style="display:none">重新送出</button></p>';
+  if(none||!ENDPOINT)return;
+  const send=()=>{
+    $('est').textContent='正在送出領取資料，請稍候，先不要關閉頁面……';$('retry').style.display='none';
+    postJSON(REWARD,60000).then(()=>{$('est').textContent=thanks}).catch(()=>{$('est').innerHTML='領取資料送出失敗。你的作答資料已經送出，請確認網路連線後按「重新送出」；若仍失敗，請直接聯絡研究者。';$('retry').style.display=''});
   };
   $('retry').onclick=send;send();
 }
