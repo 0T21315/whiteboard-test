@@ -258,7 +258,7 @@ function studyPage(){
   show('intro');
   $('intro').innerHTML=`<h1>線上協作白板功能測試</h1>
 <div class="fq"><h3>實驗名稱</h3><p style="margin:0">線上協作白板平台之資訊呈現易用性研究</p></div>
-<div class="fq"><h3>測試費用</h3><p style="margin:0 0 6px"><b>完成全部測試後，可獲得新台幣 100 元測試費用。</b>領取方式可在測試最後選擇：</p><ol class="steps"><li>LINE Pay 轉帳（需留下稱呼方式與 LINE ID）</li><li>7-ELEVEN 商品禮券（需留下稱呼方式與 Email）</li><li>由研究者協助你完成你自己的實驗，作為互相幫忙（需留下稱呼方式與聯絡方式）</li></ol><p style="margin:6px 0 0">這些聯絡資料只用來發放測試費用，與你的測試資料分開存放，不會和你的作答內容放在一起。</p></div>
+<div class="fq"><h3>測試費用</h3><p style="margin:0 0 6px"><b>完成全部測試後，可獲得新台幣 100 元測試費用。</b>領取方式可在測試最後選擇：</p><ol class="steps"><li>LINE Pay 轉帳（需留下稱呼方式與 LINE ID）</li><li>7-ELEVEN 商品禮券（需留下稱呼方式與 Email）</li><li>由研究者協助完成你的實驗（需留下稱呼方式與聯絡方式）</li></ol><p style="margin:6px 0 0">這些聯絡資料只用來發放測試費用，與你的測試資料分開存放，不會和你的作答內容放在一起，測試費用發放完畢後會刪除。</p></div>
 <div class="fq"><h3>實驗目的</h3><p style="margin:0 0 6px">本研究旨在了解線上協作白板的功能在介面上的呈現方式，如何影響使用者尋找、辨識與選擇適合功能的表現與使用感受，作為改善白板介面設計的參考。</p></div>
 <div class="fq"><h3>實驗內容</h3><ol class="steps">
 <li>填寫匿名基本資料。</li>
@@ -700,9 +700,9 @@ function rewardPage(){
   const OPT=[
    ['linepay','LINE Pay 轉帳（100 元）',[['nickname','稱呼方式','我們該怎麼稱呼你？'],['line_id','LINE ID','請填寫你的 LINE ID，不是手機號碼或顯示名稱']]],
    ['seven','7-ELEVEN 商品禮券（100 元）',[['nickname','稱呼方式','我們該怎麼稱呼你？'],['email','Email','禮券會寄到這個信箱']]],
-   ['help','由研究者協助我完成我自己的實驗（互相幫忙）',[['nickname','稱呼方式','我們該怎麼稱呼你？'],['contact','聯絡方式','例如 LINE ID 或 Email，方便研究者與你聯絡']]],
+   ['help','由研究者協助完成我的實驗',[['nickname','稱呼方式','我們該怎麼稱呼你？'],['contact','聯絡方式','例如 LINE ID 或 Email，方便研究者與你聯絡']]],
    ['none','不需要測試費用，謝謝',[]]];
-  let h='<h1>領取測試費用</h1><p>謝謝你完成測試！請選擇測試費用（新台幣 100 元）的領取方式，並留下領取所需的資料。</p><p class="note">這些聯絡資料只用來發放測試費用，與你剛才的作答資料分開存放，不會連結到你的作答內容。</p>';
+  let h='<h1>領取測試費用</h1><p>謝謝你完成測試！請選擇測試費用（新台幣 100 元）的領取方式，並留下領取所需的資料。</p><p class="note">這些聯絡資料只用來發放測試費用，與你剛才的作答資料分開存放，不會連結到你的作答內容，測試費用發放完畢後會刪除。</p>';
   h+='<div class="fq">'+OPT.map((o,i)=>`<label style="display:flex;gap:10px;align-items:flex-start;margin:0 0 12px;cursor:pointer;font-size:16px"><input type="radio" name="rw" value="${o[0]}" style="width:20px;height:20px;margin-top:2px;flex:none"><span>${o[1]}</span></label>`).join('')+'</div>';
   h+='<div id="rwf"></div><button class="btn" id="rwsub" disabled>送出</button>';
   $('form').innerHTML=h;window.scrollTo(0,0);
